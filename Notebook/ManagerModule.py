@@ -1,0 +1,356 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# ## Import Libraries
+
+# In[14]:
+
+
+import pandas as pd
+import os as os
+import io
+import random
+import nltk
+import string
+from nltk.corpus import stopwords
+
+from gensim.models import Word2Vec
+from gensim.models import KeyedVectors
+from gensim.test.utils import datapath
+import gensim.downloader as api
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import LabelEncoder
+
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from keras.utils import to_categorical
+
+
+# ## CNN Module
+
+# In[15]:
+
+
+import os
+import numpy as np
+import pickle
+
+from gensim.models import Word2Vec
+from gensim.utils import simple_preprocess
+from gensim.models.keyedvectors import KeyedVectors
+
+from keras.activations import relu
+from keras.models import Sequential, Model, load_model
+from keras.layers import Input, Dense, Dropout, Reshape, Embedding, Flatten, Conv1D, Conv2D, MaxPooling1D ,MaxPooling2D, Activation
+from keras.layers import Dropout, concatenate
+from keras.utils.vis_utils import model_to_dot
+
+from sklearn.metrics import classification_report
+
+from IPython.display import SVG
+
+from keras.layers.normalization import BatchNormalization
+
+
+# In[16]:
+
+
+#global variables
+
+bots_list= []
+max_input_lenght = 0
+tokenizer = Tokenizer()
+
+
+# ## Functions
+
+# In[17]:
+
+
+def text_process(mess):
+    nopunc = [char for char in mess if char not in string.punctuation]
+    nopunc = ''.join(nopunc)
+    return [word for word in nopunc.split()] #if word.lower() not in stopwords.words('english')]
+
+
+# ## CNN Utils Functions
+
+# In[18]:
+
+
+def compute_metrics(raw_predictions, label_encoder):
+    # convert raw predictions to class indexes
+    threshold = 0.5
+    class_predictions = [(x > threshold).astype(int) for x in model.predict(x_test)]
+
+    # convert raw predictions to class indexes
+    threshold = 0.5
+    class_predictions = [(x > threshold).astype(int) for x in model.predict(x_test)]
+
+    # select only one class (i.e., the dim in the vector with 1.0 all other are at 0.0)
+    class_index = ([np.argmax(x) for x in class_predictions])
+
+    # convert back to original class names
+    pred_classes = label_encoder.inverse_transform(class_index)
+
+    # print precision, recall, f1-score report
+    print(classification_report(y_test, pred_classes))
+
+def load_fasttext_embeddings():
+    glove_dir = os.getcwd()
+    embeddings_index = {}
+    f = open(os.path.join(glove_dir, 'wiki-news-300d-1M.vec'), encoding="utf8")
+    for line in f:
+        values = line.split()
+        word = values[0]
+        coefs = np.asarray(values[1:], dtype='float32')
+        embeddings_index[word] = coefs
+    f.close()
+    print('Found %s word vectors.' % len(embeddings_index))
+    return embeddings_index
+
+def create_embeddings_matrix(embeddings_index, vocabulary, embedding_dim=100):
+    embeddings_matrix = np.random.rand(len(vocabulary)+1, embedding_dim)
+    for i, word in enumerate(vocabulary):
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is not None:
+            embeddings_matrix[i] = embedding_vector
+    print('Matrix shape: {}'.format(embeddings_matrix.shape))
+    return embeddings_matrix
+
+
+def get_embeddings_layer(embeddings_matrix, name, max_len, trainable=False):
+    embedding_layer = Embedding(
+        input_dim=embeddings_matrix.shape[0],
+        output_dim=embeddings_matrix.shape[1],
+        input_length=max_len,
+        weights=[embeddings_matrix],
+        trainable=trainable,
+        name=name)
+    return embedding_layer
+
+
+def get_conv_pool_arc_II(x_input, sufix,maxlen, n_grams=[3,4,5], feature_maps=100): #maybe we need to change feature_maps = 500
+    branches = []
+    kernel_size_1d = 3
+    num_conv2d_layers = 2
+    filters_2d=[256,128]
+    kernel_size_2d=[[3,3], [3,3]]
+    mpool_size_2d=[[2,2], [2,2]]
+    dropout_rate=0
+    
+    layer1_conv = Conv1D(filters=maxlen, kernel_size=kernel_size_1d, padding='same')(x_input)
+    layer1_activation=Activation('relu')(layer1_conv)
+    print("layer1_activation:")
+    print(layer1_activation.shape)
+    layer1_reshaped=Reshape((maxlen, maxlen, -1))(layer1_activation)
+    z=MaxPooling2D(pool_size=(2,2))(layer1_reshaped)
+    #z=MaxPooling2D(pool_size=(2,2))(layer1_activation)
+
+    for i in range(num_conv2d_layers):
+        z=Conv2D(filters=filters_2d[i], kernel_size=kernel_size_2d[i], padding='same')(z)
+        z=Activation('relu')(z)
+        z=MaxPooling2D(pool_size=(mpool_size_2d[i][0], mpool_size_2d[i][1]))(z)
+    
+    pool1_flat=Flatten()(z)
+    pool1_flat_drop=Dropout(rate=dropout_rate)(pool1_flat)
+    pool1_norm=BatchNormalization()(pool1_flat_drop)
+    mlp1=Dense(64)(pool1_norm)
+    mlp1=Activation('relu')(mlp1)
+
+    return mlp1
+def get_cnn_pre_trained_embeddings(embedding_layer, max_len):
+    # connect the input with the embedding layer
+    input_1 = Input(shape=(max_len,), dtype='int32', name='input_1')
+    input_2 = Input(shape=(max_len,), dtype='int32', name='input_2')
+    x_1 = embedding_layer(input_1)
+    x_2 = embedding_layer(input_2)
+    
+    layer1_input=concatenate([x_1, x_2])
+
+    # generate several branches in the network, each for a different convolution+pooling operation,
+    # and concatenate the result of each branch into a single vector
+    mlp1 = get_conv_pool_arc_II(layer1_input, 'static',max_len)
+
+    # pass the concatenated vector to the predition layer
+    o = Dense(2, activation='sigmoid', name='output')(mlp1)
+
+    model = Model(inputs=[input_1, input_2], outputs=o)
+    model.compile(loss={'output': 'binary_crossentropy'}, optimizer='adam')
+
+    return model
+
+
+# ## Build test and train files
+# don't take time - prepare dataset: open train and test X and Y files
+# 
+
+# In[19]:
+
+
+def Create_Tokenizer(text_for_tokenizer):
+    global tokenizer
+    tokenizer.fit_on_texts(text_for_tokenizer)
+    return tokenizer
+
+
+# In[20]:
+
+
+def Build_Train_Set(X_train, y_train):
+    global bots_list
+    global max_input_lenght
+    global tokenizer
+    
+    # built two lists with tweets and labels
+    tweets_train = [x for x in X_train]
+    labels_train = [y for y in y_train]
+
+    # convert list of tokens/words to indexes
+    sequences_train = tokenizer.texts_to_sequences(tweets_train)
+    word_index = tokenizer.word_index
+    print('Found %s unique tokens.' % len(word_index))
+
+    # get the max sentence lenght, needed for padding
+    max_input_lenght = max([len(x) for x in sequences_train])
+    print("Max. sequence lenght: ", max_input_lenght)
+
+    # pad all the sequences of indexes to the 'max_input_lenght'
+    data_train = pad_sequences(sequences_train, maxlen=max_input_lenght, padding='post', truncating='post')
+
+    #prepare data set of bots
+    #bots_list = [x for i,x in enumerate(data_train) if labels_train[i] == 0]
+    i=0
+    for label in labels_train:
+        if(label == 0):
+            bots_list.append(data_train[i])
+        i = i+1
+
+    #train - prepare data set for random tweets
+    index =0
+    tweets_list = []
+    final_label =[]
+    while(index < len(bots_list)):
+        i = random.sample(range(1, len(data_train)), 1)[0]
+        tweets_list.append(data_train[i])
+        final_label.append(1 if labels_train[i] == 0 else 0)
+        index = index + 1
+
+
+    # Encode the labels, each must be a vector with dim = num. of possible labels
+    le = LabelEncoder()
+    le.fit(final_label)
+    labels_encoded_train = le.transform(final_label)
+    categorical_labels_train = to_categorical(labels_encoded_train, num_classes=None)
+    print('Shape of train data tensor:', data_train.shape)
+    print('Shape of train label tensor:', categorical_labels_train.shape)
+    
+    return tweets_list, categorical_labels_train, le, word_index
+
+
+# ## test
+
+# In[21]:
+
+
+def Build_Test_Set(X_test, y_test, le):
+    
+    global bots_list
+    global max_input_lenght
+    global tokenizer
+    
+    # pre-process test data
+    tweets_test = [x for x in X_test]
+    labels_test = [y for y in y_test]
+
+    # convert list of tokens/words to indexes
+    sequences_test = tokenizer.texts_to_sequences(tweets_test)
+    x_test = pad_sequences(sequences_test, maxlen=max_input_lenght)
+
+    #test - prepare data set for random tweets
+    index =0
+    test_tweets_list = []
+    test_final_label =[]
+    while(index < len(bots_list)):
+        i = random.sample(range(1, len(x_test)), 1)[0]
+        test_tweets_list.append(x_test[i])
+        test_final_label.append(1 if labels_test[i] == 0 else 0)
+        index = index + 1
+
+    le.fit(test_final_label)
+    labels_encoded_test = le.transform(test_final_label)
+    categorical_labels_test = to_categorical(labels_encoded_test, num_classes=None)
+    print('Shape of test data tensor:', len(test_tweets_list))
+    print('Shape of test labels tensor:', categorical_labels_test.shape)
+    
+    return test_tweets_list, categorical_labels_test
+
+
+# # important  - the first and the fifth tweet is also bot and human
+
+# ## CNN with pre-trained static word embeddings
+
+# In[22]:
+
+
+def build_model(word_index):
+    global max_input_lenght
+    
+    embeddings_index = load_fasttext_embeddings()
+    embeddings_matrix = create_embeddings_matrix(embeddings_index, word_index, 300)
+    embedding_layer_static = get_embeddings_layer(embeddings_matrix, 'embedding_layer_static', max_input_lenght, trainable=False)
+    model = get_cnn_pre_trained_embeddings(embedding_layer_static, max_input_lenght)
+    return model
+
+
+# In[23]:
+
+
+def create_model(model_name = 'arcii_first_version_with_two_inputs', bots_file_path = 'bots_tweets.txt' , human_file_path = 'human_tweets.txt', test_size_input = 0.3, batch_size=50, epochs=10):
+    
+    global bots_list
+    global tokenizer
+    
+    fd1 = pd.read_fwf(bots_file_path, header=None)
+    fd1.columns = ['tweets']
+    fd1['label'] = 0
+    # 0-> bots
+    
+    fd2 = pd.read_fwf(human_file_path, header=None)
+    fd2 = fd2[[0]]
+    fd2.columns = ['tweets']
+    fd2['label']=1
+    # 1-> humans
+    
+    fd = fd1.append(fd2)
+    fd.reset_index(drop = True,inplace = True)
+    
+    fd['process_tweets'] = fd['tweets']
+    fd['process_tweets'] = fd['process_tweets'].apply(text_process)
+    x_text = fd['process_tweets'].tolist()
+   
+    #split dataset
+    y = fd['label'].tolist()
+    X_train, X_test, y_train, y_test = train_test_split(x_text,y,test_size=test_size_input) # here 30% test 70% train we can change it  
+    
+    print("Train Samples: {}".format(len(X_train)))
+    print("Test Samples : {}".format(len(X_test)))
+    print("Labels       : {}".format({x for x in y_train}))
+    
+    tokenizer = Create_Tokenizer(x_text)
+    
+    tweets_list, categorical_labels_train, le, word_index = Build_Train_Set(X_train, y_train)
+    
+    test_tweets_list, categorical_labels_test = Build_Test_Set(X_test, y_test, le)
+    
+    model = build_model(word_index)
+    with open(model_name+'.pickle', 'wb') as f:
+        pickle.dump([bots_list, max_input_lenght, tokenizer], f)
+    
+    history = model.fit([bots_list,tweets_list], categorical_labels_train, batch_size=batch_size, epochs=epochs)
+    
+    static = static_num2().next
+    model.save(model_name+'.h5')
+

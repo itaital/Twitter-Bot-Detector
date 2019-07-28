@@ -1,0 +1,21 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/Pictures">
+	<file alias="logo.png">Pictures/logo.png</file>
+	<file alias="backimg.png">Pictures/backimg.png</file>
+	<file alias="filebrowse.png">Pictures/filebrowse.png</file>
+	<file alias="loading.gif">Pictures/loading.gif</file>
+	<file alias="loading2.gif">Pictures/loading2.gif</file>
+	<file alias="logo2.png">Pictures/logo2.png</file>
+	<file alias="logo150x.png">Pictures/logo150x.png</file>
+	<file alias="microphone1.png">Pictures/microphone1.png</file>
+	<file alias="microphone2.png">Pictures/microphone2.png</file>
+	<file alias="help.png">Pictures/help.png</file>
+	<file alias="helpmain2.png">Pictures/helpmain2.png</file>
+	<file alias="helpuser3.png">Pictures/helpuser3.png</file>
+	<file alias="helpadmin3.png">Pictures/helpadmin3.png</file>
+	<file alias="human_message.png">Pictures/human_message.png</file>
+	<file alias="bot_message.png">Pictures/bot_message.png</file>
+
+</qresource>	
+</RCC>

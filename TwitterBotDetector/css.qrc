@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/css">
+	<file alias="StyleSheet.css">css/StyleSheet.css</file>
+	<file alias="bg.png">css/bg.png</file>
+</qresource>	
+</RCC>

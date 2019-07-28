@@ -1,0 +1,3 @@
+pyrcc5 -o css.py css.qrc
+pyrcc5 -o design.py design.qrc
+pyinstaller -F --onefile Main_Window.py --add-data css/StyleSheet.css;css --windowed
