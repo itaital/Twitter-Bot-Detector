@@ -34,7 +34,7 @@ https://drive.google.com/file/d/1-8Lz5TLU1uVAvDpjpVbHqGw3OK0sG1Ep/view?usp=shari
 2) vector file - 
 https://www.kaggle.com/yesbutwhatdoesitmean/wikinews300d1mvec
 
-* Executable file
+* Executable file -
 If you just want to run the project without a compiler or the liabery.
 you can download the Executable file from here:
 https://drive.google.com/file/d/1Go1kh0UDIt5eTSDCCWZcYAMuJm_Wavna/view?usp=sharing
