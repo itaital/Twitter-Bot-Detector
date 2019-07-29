@@ -17,4 +17,4 @@ Assumption: tweets written by the same generator have the same sentence structur
 Main goal: measure the similarity between two tweets.  
 
 # Algorithm
-![Screenshot](https://imgur.com/1yHCGO5)
+![Screenshot](https://i.imgur.com/1yHCGO5.png?raw=true)
