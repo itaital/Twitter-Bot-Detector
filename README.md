@@ -17,4 +17,4 @@ Assumption: tweets written by the same generator have the same sentence structur
 Main goal: measure the similarity between two tweets.  
 
 # Algorithm
-<blockquote class="imgur-embed-pub" lang="en" data-id="a/Y2dmmmY" data-context="false" ><a href="//imgur.com/a/Y2dmmmY"></a></blockquote><script async src="//s.imgur.com/min/embed.js" charset="utf-8"></script>
+![Screenshot](https://imgur.com/1yHCGO5)
