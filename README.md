@@ -2,15 +2,15 @@
 A simple version of ARC-II model implemented in Keras.
 Please reference paper：<a href='https://arxiv.org/abs/1503.03244'>Convolutional Neural Network Architectures for Matching Natural Language Sentences</a>
 
-# Our approch
+## Our approch
 Based on the assumption that big amount of tweets having similar structure can indicate a bot, we suggest a convolutional architecture.
 The architectures include: Word embedding, Convolution and pooling layers, Flattening, Multi- layer perceptron (MLP) with activation function, Post - processing, Tweet classification.
 
-# Assumption and goal
+## Assumption and goal
 Assumption: tweets written by the same generator have the same sentence structure.
 Main goal: measure the similarity between two tweets.  
 
-# Algorithm
+## Algorithm
 ![Screenshot](https://i.imgur.com/1yHCGO5.png?raw=true)
 
 We have the tweet the user want to classify. we created a list that contains bot tweets from the dataset at the training phase. Then using our CNN architecture we get the measure of similarity between every bot tweet from the list and the tweet we want to classify. 
@@ -20,7 +20,7 @@ The next step we sum the classes IDs.
 If the percentage of similarity pass the threshold selected by the user, the model will identify the tweet as bot tweet.
 Else, we will say that the tweet probably was written by human.
 
-# Result
+## Result
 ![Screenshot](https://i.imgur.com/P0EQGDD.png?raw=true)
 
 different threshold value could contribute to various purposes of the application.
