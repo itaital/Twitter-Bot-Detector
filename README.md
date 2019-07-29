@@ -45,6 +45,6 @@ in the folder 'Notebook' there is our notbook that have only pure code without G
 * Complete project (There are explanations inside the folder).
 all the project files are in the 'TwitterBotDetector' folder
 
-* to run the Notbook or the Complete project some liaberys are needed: 
+* I put my environment in the root 'environment.yml' you can use it to have the same version like me. 
 
 
