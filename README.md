@@ -47,4 +47,6 @@ all the project files are in the 'TwitterBotDetector' folder
 
 * I put my environment in the root 'environment.yml' you can use it to have the same version like me. 
 
+* video of the program: https://drive.google.com/file/d/15V1YjUt0BQeysEbKZiOeMLJkL2Y41ZU1/view?usp=sharing   
+
 
